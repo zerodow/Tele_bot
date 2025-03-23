@@ -24,7 +24,7 @@ app.post("/github-webhook", async (req, res) => {
     .join("\n");
 
   const message = `📦 Push mới vào *dev* của *${repo}*\n👤 *${pusher}* đã đẩy:\n${commits}`;
-
+  console.log("message", message);
   try {
     await axios.post(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
