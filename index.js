@@ -1,41 +1,45 @@
-import { Telegraf } from "telegraf";
-import axios from "axios";
-import "dotenv/config"; // dùng biến môi trường từ file .env
+const express = require("express");
+const axios = require("axios");
+require("dotenv").config();
 
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const app = express();
+app.use(express.json());
 
-bot.on("text", async (ctx) => {
-  const userMessage = ctx.message.text;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+app.get("/", (_, res) => res.send("Bot webhook đang hoạt động."));
+
+app.post("/github-webhook", async (req, res) => {
+  const body = req.body;
+
+  const branch = body.ref?.split("/").pop();
+  if (branch !== "dev")
+    return res.status(200).send("Không phải nhánh dev, bỏ qua.");
+
+  const pusher = body.pusher?.name;
+  const repo = body.repository?.name;
+  const commits = body.commits
+    ?.map((c) => `- ${c.message} (${c.id.slice(0, 7)})`)
+    .join("\n");
+
+  const message = `📦 Push mới vào *dev* của *${repo}*\n👤 *${pusher}* đã đẩy:\n${commits}`;
 
   try {
-    const response = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
+    await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
-        model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: "You are a helpful assistant." },
-          { role: "user", content: userMessage },
-        ],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+        chat_id: CHAT_ID,
+        text: message,
+        parse_mode: "Markdown",
       }
     );
-
-    const reply = response.data.choices[0].message.content.trim();
-    ctx.reply(reply);
-  } catch (error) {
-    console.error(
-      "❌ Error from OpenAI:",
-      error.response?.data || error.message
-    );
-    ctx.reply("Có lỗi xảy ra khi gọi ChatGPT!");
+    res.status(200).send("✅ Đã gửi Telegram");
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("❌ Gửi Telegram lỗi");
   }
 });
 
-bot.launch();
-console.log("🤖 Bot đang chạy...");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Server chạy tại cổng ${PORT}`));
