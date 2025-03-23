@@ -25,6 +25,7 @@ app.post("/github-webhook", async (req, res) => {
 
   const message = `📦 Push mới vào *dev* của *${repo}*\n👤 *${pusher}* đã đẩy:\n${commits}`;
   console.log("message", message);
+  console.log("process.env", process.env);
   console.log("TELEGRAM_BOT_TOKEN", TELEGRAM_BOT_TOKEN);
   console.log("TELEGRAM_CHAT_ID", CHAT_ID);
   try {
