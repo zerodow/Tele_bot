@@ -14,7 +14,7 @@ app.post("/github-webhook", async (req, res) => {
   const body = req.body;
 
   const branch = body.ref?.split("/").pop();
-  if (branch !== "dev" || branch !== "cicd")
+  if (branch !== "dev" && branch !== "cicd")
     return res.status(200).send("Không phải nhánh dev, bỏ qua.");
 
   const pusher = body.pusher?.name;
